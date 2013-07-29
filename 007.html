@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+	<meta charset="utf-8" />
+    <title>Interactive Drawing - Multi-lines</title>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, initial-scale=1.0, user-scalable=no" />
+    <style>
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #canvas-wrapper {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            overflow: hidden;
+        }
+
+        canvas {
+            position: absolute;
+            background: #CCC;
+        }
+
+        .CSS3Animated {
+            /* enable harware acceleration */
+            -webkit-transform: translate3d(0, 0, 0);
+               -moz-transform: translate3d(0, 0, 0);
+                -ms-transform: translate3d(0, 0, 0);
+                 -o-transform: translate3d(0, 0, 0);
+                    transform: translate3d(0, 0, 0);
+
+            /* animate */
+            -webkit-transition: all 300ms cubic-bezier(0.445, 0.045, 0.0355, 1);
+               -moz-transition: all 300ms cubic-bezier(0.445, 0.045, 0.0355, 1);
+                -ms-transition: all 300ms cubic-bezier(0.445, 0.045, 0.0355, 1);
+                 -o-transition: all 300ms cubic-bezier(0.445, 0.045, 0.0355, 1);
+                    transition: all 300ms cubic-bezier(0.445, 0.045, 0.0355, 1);
+
+            /* prevent flickering in animation */
+            -webkit-backface-visibility: hidden;
+            -webkit-perspective: 1000;
+        }
+
+        #settings {
+            padding: 20px 10px;
+            position: absolute;
+        }
+
+        a {
+            color: #000;
+            font-size: 14px;
+            font-family: Georgia;
+            padding: 10px;
+            text-decoration: none;
+            background: #F0F;
+        }
+
+        a:hover {
+            background: #0CC;
+        }
+
+    </style>
+</head>
+<body>
+
+	<div id="canvas-wrapper">
+        <canvas id="canvas">
+        
+            <center>
+                <h1>Your browser doesn't support canvas ...</h1>
+                <p>Try a <a href="https://www.google.com/chrome">modern browser</a> and come back some other time.</p>
+            </center>
+        
+        </canvas>
+    </div>
+    <div id="settings">
+
+        <a id="clear" href="#">Clear</a>
+        <a id="save" href="#">Save</a>
+
+    </div>
+
+<script>
+
+
+
+
+    //
+    // MAIN SETUP ----------------------------------------------------------------
+    //
+
+    var canvas = document.getElementById('canvas'),
+        clear  = document.getElementById('clear'),
+        save   = document.getElementById('save'),
+
+        c = canvas.getContext('2d');
+
+
+
+
+    //
+    // 2D VECTOR CLASS -----------------------------------------------------------
+    // 2D vectors describe a point by it's xy-coordinate
+    //
+
+    var Vec2 = function(x, y) {
+
+        this.x = x >> 0 || 0;
+        this.y = y >> 0 || 0;
+
+    };
+
+
+    Vec2.prototype =
+    {
+
+    };
+
+
+
+
+    //
+    // STROKE CLASS --------------------------------------------------------------
+    // Each stroke is an array of Vec2-points
+    // Each stroke must have a minimum number of points
+    //
+
+    var Stroke = function() {
+
+        this.points = [];
+        this.minimumPoints = 5;
+
+    };
+
+
+    // Add points to the Stroke
+    Stroke.prototype.addPoints = function(p) {
+
+        // Calculate the correct vector position
+        // Based on the acual canvas size & position
+        var pixelRatio = App.getPixelRatio(),
+            position   = App.getActualPosition(),
+            x          = (p.clientX * pixelRatio) - position.x,
+            y          = (p.clientY * pixelRatio) - position.y;
+
+        // Add point to array
+        this.points.push(new Vec2(x, y));
+        
+        // If we gathered enough points
+        // draw a line to the previous point
+        if(this.points.length > 2 * this.minimumPoints) this.draw(this.points.length - 1);
+
+    };
+
+
+    // Draw a line to the previous point
+    Stroke.prototype.draw = function(i) {
+            
+        var p1 = this.points[i - (2 * this.minimumPoints)],
+            p2 = this.points[i - this.minimumPoints],
+            p3 = this.points[i];
+
+        // Default line settings
+        c.lineWidth = 0.5 * App.getPixelRatio();
+        c.strokeStyle = 'rgba(0, 0, 0, 1)';
+
+        // Draw
+        c.beginPath( );
+        c.moveTo(p1.x, p1.y);
+        c.lineTo(p2.x, p2.y);
+        c.lineTo(p3.x, p3.y);
+        c.stroke();
+
+    };
+
+
+
+
+    //
+    // UTILITIES -----------------------------------------------------------------
+    //
+
+    var Utils = {};
+
+    // Debounce method to guarantee that a callback method will only ever
+    // be executed once in a given timeframe (<-> browser resize event in IE which fires continuously)
+    // http://www.paulirish.com/2009/throttled-smartresize-jquery-event-handler
+    // http://davidwalsh.name/function-debounce
+    // Note: if Underscore/Lo-Dash is included in your project you can use _.debounce(callback, wait)
+    // http://lodash.com/docs#debounce
+
+    Utils.debounce = function(callback, wait) {
+
+        var timeout = null;
+        return function() {
+            var obj = this, args = arguments;
+            var delayed = function() {
+                callback.apply(obj, args);
+                timeout = null;
+            };
+
+            if(timeout) clearTimeout(timeout);
+            timeout = setTimeout(delayed, wait);
+        };
+    };
+
+
+    // Get CSS3 support
+    Utils.checkCSS3Support = function(prop) {
+
+        var vendors = ['webkit', 'Moz', 'O', 'ms', ''], i = vendors.length;
+        while(i--) if((vendors[i] + prop) in document.body.style) return vendors[i] + prop;
+        return false;
+    }
+
+
+
+
+
+    //
+    // APPLICATION ---------------------------------------------------------------
+    //
+
+    var App = (function() {
+
+        var size, position, pixelRatio, retinaSize, CSS3Transform = Utils.checkCSS3Support('Transform');
+
+
+        // INIT
+        var init = function() {
+
+            // Our canvas is a square taking the biggest side as its base
+            size = screen.width < screen.height ? screen.height : screen.width;
+
+            // Enable retina support by scaling the canvas x 2,
+            // while setting the CSS property to its normal size (the img-trick)
+            // For this we need to ge the pixelratio of the device
+            // On retina devices this has a value of 2, setting it to 1.99 however speeds up drawing
+            pixelRatio = window.devicePixelRatio && window.devicePixelRatio === 2 ? 1.99 : 1;
+
+            // Now, let's set the canvas size
+            // Remember: the canvas is a square, taking its biggest size as its base x retina
+            // To support retina we need to update the CSS-values of the canvas
+            canvas.width = size * pixelRatio;
+            canvas.height = size * pixelRatio;
+            canvas.style.width = size +'px';
+            canvas.style.height = size +'px';
+
+            // Set canvas position
+            position = new Vec2();
+
+            // When scaling-up the canvas, all touch-positions will be wrong
+            // We can fix this by calculating touch-positions against the actual position
+            actualPosition = new Vec2();
+
+            // Set canvas position
+            this.resize();
+
+            // Add CSS3 animations after the first resize-event
+            setTimeout(function() { canvas.className = 'CSS3Animated'; }, 1000);
+        };
+
+
+        // RESIZE WINDOW
+        // Instead of auto-clearing the canvas onResize
+        // We move the entire canvas to a new position
+        var resize = function() {
+
+            // Center the canvas
+            position.x = (window.innerWidth - size) * .5 >> 0;
+            position.y = (window.innerHeight - size) * .5 >> 0;
+
+            // Keep track of its real position
+            // to calculate touch-positions against on retina-devices
+            actualPosition.x = position.x * pixelRatio;
+            actualPosition.y = position.y * pixelRatio;
+
+            // Set canvas position
+            // Use CSS3 Translation for hardware acceleration
+            // Note: not supported on Opera Mini - http://caniuse.com/#search=translate
+            if(CSS3Transform) canvas.style[CSS3Transform] = 'translate3d('+ position.x +'px, '+ position.y +'px, 0)';
+            else {
+                canvas.style.left = position.x +'px';
+                canvas.style.top  = position.y +'px';
+            }
+        };
+
+
+        //
+        // PUBLIC API ------------------------------------------------------------
+        //
+
+        return {
+
+            getActualPosition : function() { return actualPosition; },
+            getPixelRatio     : function() { return pixelRatio; },
+
+            init   : init,
+            resize : resize
+
+        }
+
+
+    }());
+
+
+
+
+
+
+
+
+    //
+    // EVENT MANAGER -------------------------------------------------------------
+    //
+
+    var Events = (function() {
+
+        //
+        // TOUCH DEVICES ---------------------------------------------------------
+        //
+
+        if('ontouchstart' in document) {
+
+            // To support multitouch drawing, we will need
+            // to keep track of all active touches
+            var activeTouches = [],
+
+            // Each touch will create a new Stroke()
+            // To support multitouch we need a way to identify individual strokes
+            // So we store all strokes in an array 
+            strokes = [],
+
+            // And create a Touch class which links
+            // the current active touch to a specific stroke
+            Touch = function(id) {
+
+                this.touchID = id;
+                this.strokeID = strokes.length;
+                strokes.push(new Stroke());
+
+            };
+
+            // CANVAS ONTOUCHDOWN
+            // For each touch we create a new Touch instance and
+            // store in the activeTouches array
+            // Note: In order to track touchMove events correctly
+            // use 'e.changedTouches' instead of 'e.touches'
+            // https://developer.mozilla.org/en-US/docs/Web/Reference/Events/touchmove
+            canvas.addEventListener('touchstart', function(e) {
+                var i = e.changedTouches.length;
+                while(i--) activeTouches.push(new Touch( e.changedTouches[i].identifier ));
+            }, false);
+
+            // START DRAWING ONTOUCHMOVE
+            // For each touch, search the corresponding Touch instance
+            // in the activeTouches array & add points to the referenced Stroke
+            canvas.addEventListener('touchmove', function(e) {
+
+                var i = e.changedTouches.length; while(i--) {
+                    var j = activeTouches.length; while(j--) {
+                        if( e.changedTouches[i].identifier === activeTouches[j].touchID ) {
+                            strokes[ activeTouches[j].strokeID ].addPoints( e.changedTouches[i] );
+                        }
+                    }
+                }
+
+                // Important: disable elastic scrolling
+                // by killing the default behaviour
+                e.preventDefault();
+
+            }, false);
+
+            // STOP DRAWING ONTOUCHEND
+            // Search the corresponding Touch instance
+            // and remove it from the activeTouches array
+            canvas.addEventListener('touchend', function(e) {
+
+                var i = e.changedTouches.length; while(i--) {
+                    var j = activeTouches.length; while(j--) {
+                        if( e.changedTouches[i].identifier === activeTouches[j].strokeID ) {
+                            activeTouches.splice(j, 1);
+                        }
+                    }
+                }
+
+            }, false);
+
+            // BROWSER RESIZE
+            // Add a default resize event as well
+            // in case window.orientation is not supported
+            // http://davidwalsh.name/orientation-change
+            if(window.orientation) window.onorientationchange = Utils.debounce(App.resize, 100);
+            else window.onresize = Utils.debounce(App.resize, 100);
+
+
+        //
+        // DESKTOP ---------------------------------------------------------------
+        //
+
+        } else {
+
+            // START DRAWING
+            // Each mousedown event starts a new Stroke()
+            // and has its own mousemove, mouseup & mouseout event
+            canvas.addEventListener('mousedown', function(e) {
+
+                var stroke = new Stroke();
+
+                // Add points to the stroke onMouseMove
+                canvas.addEventListener('mousemove', onMouseMove = function(e) {
+                    stroke.addPoints(e);
+                }, false);
+
+                // Stop drawing on mouseUp
+                // by removing the mousemove listener
+                canvas.addEventListener('mouseup', function(e) {
+                    canvas.removeEventListener('mousemove', onMouseMove, false);
+                }, false);
+
+                // Important: when moving outside the canvas the mouseup event never gets called
+                // So we need to add an additional mouseOut event which clears the mouseMove event
+                canvas.addEventListener('mouseout', function(e) {
+                    canvas.removeEventListener('mousemove', onMouseMove, false);
+                }, false);
+
+                // Disable the cursor going into 'select'
+                e.preventDefault();
+
+            });
+
+            // BROWSER RESIZE
+            window.onresize = Utils.debounce(App.resize, 100);
+
+        }
+
+
+    }());
+
+
+
+
+    // START THE APPLICATION
+    App.init();
+
+
+
+
+</script>
+</body>
+</html>

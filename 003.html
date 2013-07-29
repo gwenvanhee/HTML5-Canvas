@@ -1,0 +1,164 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+
+	<meta charset="utf-8" />
+    <title>Interactive Drawing - Javascript Structure</title>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, initial-scale=1.0, user-scalable=no" />
+    <style>
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #canvas-wrapper {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            overflow: hidden;
+        }
+
+        canvas {
+            position: absolute;
+        }
+
+        #settings {
+            padding: 20px 10px;
+            position: absolute;
+        }
+
+        a {
+            color: #000;
+            font-size: 14px;
+            font-family: Georgia;
+            padding: 10px;
+            text-decoration: none;
+            background: #F0F;
+        }
+
+        a:hover {
+            background: #0CC;
+        }
+
+    </style>
+</head>
+<body>
+
+	<div id="canvas-wrapper">
+        <canvas id="canvas">
+        
+            <center>
+                <h1>Your browser doesn't support canvas ...</h1>
+                <p>Try a <a href="https://www.google.com/chrome">modern browser</a> and come back some other time.</p>
+            </center>
+        
+        </canvas>
+    </div>
+    <div id="settings">
+
+        <a id="clear" href="#">Clear</a>
+        <a id="save" href="#">Save</a>
+
+    </div>
+
+<script>
+
+
+
+
+    //
+    // MAIN SETUP ----------------------------------------------------------------
+    //
+
+
+
+
+    //
+    // 2D VECTOR CLASS -----------------------------------------------------------
+    // 2D vectors describe a point by it's xy-coordinate
+    //
+
+    var Vec2 = function(x, y) {
+
+    };
+
+
+    Vec2.prototype =
+    {
+
+    };
+
+
+
+
+    //
+    // STROKE CLASS --------------------------------------------------------------
+    // Each stroke is an array of Vec2-points
+    //
+
+    var Stroke = function() {
+
+    };
+
+
+    Stroke.prototype = {
+
+    };
+
+
+
+
+    //
+    // UTILITIES -----------------------------------------------------------------
+    //
+
+    var Utils = {};
+
+
+
+
+    //
+    // APPLICATION ---------------------------------------------------------------
+    //
+
+    var App = (function() {
+
+        //
+        // PUBLIC API ------------------------------------------------------------
+        //
+
+        return {
+
+        }
+
+
+    }());
+
+
+
+
+    //
+    // EVENT MANAGER -------------------------------------------------------------
+    //
+
+    var Events = (function() {
+
+        //
+        // PUBLIC API ------------------------------------------------------------
+        //
+
+        return {
+
+        }
+
+
+    }());
+
+
+
+
+</script>
+</body>
+</html>
