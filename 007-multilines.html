@@ -3,7 +3,7 @@
 <head>
 
     <meta charset="utf-8" />
-    <title>Interactive Drawing - Addendum</title>
+    <title>Interactive Drawing - Multilines</title>
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, initial-scale=1.0, user-scalable=no" />
     <style>
 
@@ -22,6 +22,7 @@
 
         canvas {
             position: absolute;
+            background: #CCC;
         }
 
         .CSS3Animated {
@@ -114,36 +115,9 @@
     };
 
 
-    // Interpolate between 2 vectors
-    // AKA finding the mid-point of 2 vectors
-    Vec2.prototype.interpolate = function(v, amount) {
+    Vec2.prototype =
+    {
 
-        var theta = this.angle(v),
-            dist  = this.length(v) * amount,
-            x     = this.x - Math.cos(theta) * dist,
-            y     = this.y - Math.sin(theta) * dist;
-
-        return new Vec2(x, y);
-    };
-
-
-    // Find the distance between 2 vectors
-    Vec2.prototype.length = function(v) {
-
-        var x = this.x - v.x,
-            y = this.y - v.y;
-
-        return Math.sqrt((x * x) + (y * y));
-    };
-
-
-    // Get angle (in radians) between 2 vectors
-    Vec2.prototype.angle = function(v) {
-
-        var x = this.x - v.x,
-            y = this.y - v.y;
-                
-        return Math.atan2(y, x);
     };
 
 
@@ -188,34 +162,18 @@
             
         var p1 = this.points[i - (2 * this.minimumPoints)],
             p2 = this.points[i - this.minimumPoints],
-            p3 = this.points[i],
-
-            // Calculate Bezier anchors
-            m1 = p1.interpolate(p2, 0.5),
-            m2 = p2.interpolate(p3, 0.5),
-
-            // Moving speed
-            speed = m1.length(m2) * 0.25 * (i%10 === 0 ? 3 : 1);
+            p3 = this.points[i];
 
         // Default line settings
-        c.lineWidth = speed * App.getPixelRatio();
-        c.strokeStyle = 'rgba('+ ((p2.x / App.getSize() * 255) >> 0) +', '+ ((Math.random() * 255) >> 0) +', '+ ((p2.y / App.getSize() * 255) >> 0) +', 1)';
-        c.globalCompositeOperation = i%5 === 0 ? 'lighter' : 'source-over';
-
-        // Dropshadow
-        c.shadowOffsetX = 0;
-        c.shadowOffsetY = 0;
-        c.shadowBlur = 25;
-        c.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        c.lineWidth = 0.5 * App.getPixelRatio();
+        c.strokeStyle = 'rgba(0, 0, 0, 1)';
 
         // Draw
         c.beginPath( );
-        c.moveTo(m1.x, m1.y);
-        c.quadraticCurveTo(p2.x, p2.y, m2.x, m2.y);
+        c.moveTo(p1.x, p1.y);
+        c.lineTo(p2.x, p2.y);
+        c.lineTo(p3.x, p3.y);
         c.stroke();
-
-        // Drawing styles, composite blending, ...
-        // http://joshondesign.com/p/books/canvasdeepdive/toc.html
 
     };
 
@@ -300,7 +258,7 @@
             actualPosition = new Vec2();
 
             // Set canvas position
-            this.resizeCanvas();
+            this.resize();
 
             // Add CSS3 animations after the first resize-event
             setTimeout(function() { canvas.className = 'CSS3Animated'; }, 1000);
@@ -310,7 +268,7 @@
         // RESIZE WINDOW
         // Instead of auto-clearing the canvas onResize
         // We move the entire canvas to a new position
-        var resizeCanvas = function() {
+        var resize = function() {
 
             // Center the canvas
             position.x = (window.innerWidth - size) * .5 >> 0;
@@ -332,43 +290,6 @@
         };
 
 
-        // CLEAR CANVAS
-        // Remove all strokes from the canvas
-        var clearCanvas = function() {
-
-            c.clearRect(0, 0, canvas.width, canvas.height);
-
-        };
-
-
-        // SAVE CANVAS
-        // Take a snapshot of the canvas & save it
-        // Output: Base64 Encoded String
-        // http://greenethumb.com/article/1429/user-friendly-image-saving-from-the-canvas
-        // Basic code: window.open( canvas.toDataURL('image/png') );
-        //
-        // Force download by replacing the extension 
-        // Note: downloaded files don't have a file extension
-        // var data = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-        // window.location.href = data;
-        //
-        // Support for Base64 Encoded saving
-        // IE9: not sufficient to render images (filesize is limited on IE)
-        // Chrome: memory issues with large images (browser crashes)
-        // iPad (with retina) takes sometime to render (js is not as fast as on desktop)
-        // iPad Standalone version: doesn't have window.open event
-        //
-        // Better solution
-        // Export the Base64 Encoded string to PHP (or other server-side language)
-        // and store it on the server via an AJAX call
-        // http://stackoverflow.com/questions/11511511/how-to-save-a-png-image-server-side-from-a-base64-data-string
-        var saveCanvas = function() {
-
-            window.open( canvas.toDataURL('image/png') );
-
-        };
-
-
         //
         // PUBLIC API ------------------------------------------------------------
         //
@@ -377,12 +298,9 @@
 
             getActualPosition : function() { return actualPosition; },
             getPixelRatio     : function() { return pixelRatio; },
-            getSize           : function() { return size; },
 
-            init              : init,
-            resizeCanvas      : resizeCanvas,
-            clearCanvas       : clearCanvas,
-            saveCanvas        : saveCanvas
+            init   : init,
+            resize : resize
 
         }
 
@@ -472,20 +390,12 @@
 
             }, false);
 
-            // BUTTON EVENTS
-            clear.addEventListener('touchstart', App.clearCanvas, false);
-            save.addEventListener('touchstart', App.saveCanvas, false );
-            // Important: disable elastic scrolling
-            // by killing the default behaviour
-            clear.addEventListener('touchmove', function(e) { e.preventDefault(); }, false);
-            save.addEventListener('touchmove', function(e) { e.preventDefault(); }, false);
-
             // BROWSER RESIZE
             // Add a default resize event as well
             // in case window.orientation is not supported
             // http://davidwalsh.name/orientation-change
-            if(window.orientation) window.onorientationchange = Utils.debounce(App.resizeCanvas, 100);
-            else window.onresize = Utils.debounce(App.resizeCanvas, 100);
+            if(window.orientation) window.onorientationchange = Utils.debounce(App.resize, 100);
+            else window.onresize = Utils.debounce(App.resize, 100);
 
 
         //
@@ -523,16 +433,8 @@
 
             });
 
-            // BUTTON EVENTS
-            clear.addEventListener('mousedown', App.clearCanvas, false);
-            save.addEventListener('mousedown', App.saveCanvas, false );
-            // Important: disable # popping up in the url
-            // by killing the default behaviour
-            clear.addEventListener('click', function(e) { e.preventDefault(); }, false);
-            save.addEventListener('click', function(e) { e.preventDefault(); }, false);
-
             // BROWSER RESIZE
-            window.onresize = Utils.debounce(App.resizeCanvas, 100);
+            window.onresize = Utils.debounce(App.resize, 100);
 
         }
 
