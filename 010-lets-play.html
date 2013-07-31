@@ -203,6 +203,8 @@
         c.globalCompositeOperation = i%5 === 0 ? 'lighter' : 'source-over';
 
         // Dropshadow
+        c.shadowOffsetX = speed;
+        c.shadowOffsetY = speed;
         c.shadowBlur = 25;
         c.shadowColor = 'rgba(0, 0, 0, 0.3)';
 

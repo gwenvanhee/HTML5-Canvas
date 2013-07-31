@@ -200,6 +200,8 @@
             speed = m1.length(m2) * 0.5;
 
         // Default line settings
+        //c.lineWidth = 0.5 * App.getPixelRatio();
+        c.lineWidth = speed * App.getPixelRatio();
         c.strokeStyle = 'rgba(0, 0, 0, 1)';
 
         // Draw
