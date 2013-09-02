@@ -172,9 +172,19 @@
     Utils.checkCSS3Support = function(prop) {
 
         var vendors = ['webkit', 'Moz', 'O', 'ms', ''], i = vendors.length;
-        while(i--) if((vendors[i] + prop) in document.body.style) return vendors[i] + prop;
+        while(i--) if((vendors[i] + prop) in document.body.style && !Utils.isIE9()) return vendors[i] + prop;
         return false;
-    }
+    };
+
+
+    // Check if we're on IE9
+    // IE9 has CSS3 properties but 'transitions' are not supported
+    // http://quirksmode.org/js/detect.html     
+    Utils.isIE9 = function() {
+
+        var mode = document.documentMode, lang = window.navigator.systemLanguage;
+        return lang && ( !mode || mode === 9 ) ? true : false;
+    };
 
 
 
